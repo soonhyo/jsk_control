@@ -18,8 +18,6 @@
   (rplaca (assoc :enable (send robot-teleop-interface :methods)) :enable-hironxjsk-org))
 (if (not (assoc :arm-motion-cb-hironxjsk-org (send robot-teleop-interface :methods)))
   (rplaca (assoc :arm-motion-cb (send robot-teleop-interface :methods)) :arm-motion-cb-hironxjsk-org))
-(if (not (assoc :speak-hironxjsk-org (send robot-teleop-interface :methods)))
-  (rplaca (assoc :speak (send robot-teleop-interface :methods)) :speak-hironxjsk-org))
 
 
 (defmethod robot-teleop-interface
@@ -88,10 +86,6 @@
     (send* robot-interface :stop-grasp arm args))
   (:arm-motion-cb (&rest args &key (mirror nil) &allow-other-keys)
     (send* self :arm-motion-cb-hironxjsk-org :mirror mirror args))
-  ;; Override speak method to remove :volume keyword support
-  (:speak (message &key (wait nil))
-    (if (boundp '*ri*)
-      (send robot-interface :speak message :wait wait)))
   )
 
 
