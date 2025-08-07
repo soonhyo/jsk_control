@@ -5,8 +5,8 @@
 
 (defun oculus-init (&key (lgripper :default) (rgripper :default) (loop-enable t))
   (hironxjsk-oculus-init :lgripper lgripper :rgripper rgripper :loop-enable loop-enable)
-  (send *ti* :reset-arm :larm :wait nil)
-  (send *ti* :reset-arm :rarm :wait nil)
+  (send *ti* :reset-arm :larm)
+  (send *ti* :reset-arm :rarm)
   (send *ri* :wait-interpolation))
 
 
