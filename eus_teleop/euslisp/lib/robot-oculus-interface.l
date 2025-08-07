@@ -40,29 +40,30 @@
   (:get-head-ypr-angle ()
     (car (send hmd-coords :rpy-angle)))
   (:get-target-coords (arm &key (head t) (mirror nil))
-    (if (not head)
-      (progn
-        (ros::ros-error "oculus is only available when head is t.")
-        (return-from :get-target-coords nil)))
     (if mirror
       (progn
         (ros::ros-error "oculus is only available when mirror is nil.")
         (return-from :get-target-coords nil)))
+    
     (let ((controller-coords
             (send (send self :get-arm-val arm :controller-coords) :copy-worldcoords))
-          (head-coords (send self :get-head-end-coords))
-          target-pos target-rot target-coords)
+          target-coords)
       (if controller-coords
         (progn
-          (setq target-pos
-                (v+ (send head-coords :worldpos)
-                    (v- (send controller-coords :worldpos)
-                        (send hmd-coords :worldpos))))
-          (setq target-rot (send controller-coords :worldrot))
+          (unless head
+            ;; Direct 1:1 controller pose without head dependency (head nil mode)
+            (progn
+              (send self :set-val 'head->shoulder-x-distance 0)
+              (send self :set-val 'head->shoulder-z-distance (elt (send (send self :get-head-end-coords) :worldpos) 2)))
+            (progn
+              (send self :set-val 'head->shoulder-x-distance 100)
+              (send self :set-val 'head->shoulder-z-distance 50)))
           (setq target-coords
                 (send self :get-target-coords-from-pos-rot
-                      target-pos target-rot :head head :mirror mirror))
-          target-coords))))
+                      (send controller-coords :worldpos)
+                      (send controller-coords :worldrot)
+                      :head head :mirror mirror)))
+        target-coords)))
   (:calib-controller ()
     ;; TODO (knorth55): update get-target-coords for oculus
     (return-from :calib-controller t)))
