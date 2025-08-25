@@ -73,10 +73,13 @@
     (if (eq arm :arms)
       (send* robot :inverse-kinematics target-coords :rotation-axis (list t t)
              :move-target (list (send robot :larm :end-coords) (send robot :rarm :end-coords))
+             :link-list (list (send robot :link-list (send robot :larm :end-coords))
+                              (send robot :link-list (send robot :rarm :end-coords)))
              :avoid-collision-distance 5 :revert-if-fail nil :stop ik-stop-step
              :debug-view nil args)
       (send* robot :inverse-kinematics target-coords
              :rotation-axis t :move-target (send robot arm :end-coords)
+             :link-list (send robot :link-list (send robot arm :end-coords))
              :avoid-collision-distance 5 :revert-if-fail nil :stop ik-stop-step
              :debug-view nil args)))
   (:start-grasp (arm &rest args)
@@ -96,8 +99,6 @@
   (send *irtviewer* :change-background (float-vector 1 1 1))
   (send *irtviewer* :draw-floor 100)
   (send *irtviewer* :floor-color #f(0 0 0)))
-
-
 
 
 (defun signal-hook (sig code)

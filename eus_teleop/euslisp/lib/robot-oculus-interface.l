@@ -14,6 +14,7 @@
           left-controller-pose-topic-name
           rarm-controller-coords
           right-controller-pose-topic-name
+          ar-mode
           ))
 
 
@@ -47,23 +48,23 @@
     
     (let ((controller-coords
             (send (send self :get-arm-val arm :controller-coords) :copy-worldcoords))
-          target-coords)
+          (head-coords (send self :get-head-end-coords))
+          target-pos target-rot target-coords)
       (if controller-coords
         (progn
-          (unless head
-            ;; Direct 1:1 controller pose without head dependency (head nil mode)
-            (progn
-              (send self :set-val 'head->shoulder-x-distance 0)
-              (send self :set-val 'head->shoulder-z-distance (elt (send (send self :get-head-end-coords) :worldpos) 2)))
-            (progn
-              (send self :set-val 'head->shoulder-x-distance 100)
-              (send self :set-val 'head->shoulder-z-distance 50)))
-          (setq target-coords
-                (send self :get-target-coords-from-pos-rot
-                      (send controller-coords :worldpos)
-                      (send controller-coords :worldrot)
-                      :head head :mirror mirror)))
-        target-coords)))
+          ;; AR mode: use target poses directly without head/shoulder offsets
+          (if ar-mode
+              (setq target-coords controller-coords)
+              (progn
+                (setq target-pos
+                      (v+ (send head-coords :worldpos)
+                          (v- (send controller-coords :worldpos)
+                              (send hmd-coords :worldpos))))
+                (setq target-rot (send controller-coords :worldrot))
+                (setq target-coords
+                      (send self :get-target-coords-from-pos-rot
+                            target-pos target-rot :head head :mirror mirror))))
+          target-coords))))
   (:calib-controller ()
     ;; TODO (knorth55): update get-target-coords for oculus
     (return-from :calib-controller t)))
