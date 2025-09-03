@@ -1,0 +1,86 @@
+# Sciurus17 Robot Teleop Configuration
+
+robot:
+  name: "sciurus17"
+  package: "sciurus17_description"
+  core_msgs_package: null  # Sciurus17 doesn't have specific core msgs package
+
+topics:
+  # Sciurus17 gripper topics (adjust according to actual topics)
+  gripper_status:
+    larm: "/sciurus17/controller/l_gripper_controller/gripper_cmd/status"
+    rarm: "/sciurus17/controller/r_gripper_controller/gripper_cmd/status"
+  
+  # Collision detection topics (set to null if not available)
+  collision_status:
+    larm: null
+    rarm: null
+  
+  frames:
+    base: "base_link"
+    head: "neck_yaw_link"
+
+features:
+  collision_detection: false  # No collision detection available
+  gripper_control: true
+  head_control: true  # Sciurus17 has head control
+  arm_motion: true
+  torso_control: true  # Sciurus17 has waist control
+  base_motion: false
+  visual_feedback: true
+
+hardware:
+  arm_length: 800  # Shorter arms than Baxter
+  head_to_shoulder:
+    x_distance: 50
+    z_distance: 30
+
+control:
+  ik:
+    stop_step: 10
+    solve_ik: true
+  motion:
+    av_tm: 300
+    av_scale: 3.0
+    min_time: 0.3
+  torso:
+    av_tm: 1000
+    av_scale: 2.0
+    min_time: 0.5
+    z_thresh: 150
+    ik_weight: 0.3
+  safety:
+    end_coords_pos_diff_thresh: 300  # Smaller workspace
+    grasp_timeout_time: 1.5
+  rate: 10
+
+workspace:
+  max_x: 600
+  max_y: 400
+  max_z: 800
+  min_x: 200
+  min_y: -400
+  min_z: 0
+
+gripper_types:
+  larm: null  # Default gripper type
+  rarm: null
+
+robot_methods:
+  nod: false  # Sciurus17 might not have nod method
+  reset_teleop_pose: true
+  thumb_control: false  # No thumb control
+
+controllers:
+  vive:
+    enable_button: "menu"
+    gripper_button: "trigger"
+  oculus:
+    enable_button: "menu"
+    gripper_button: "trigger"
+  spacenav:
+    enable_button: "right"
+    gripper_button: "left"
+  tablis:
+    enable_button: "menu"
+    gripper_button: "trigger"

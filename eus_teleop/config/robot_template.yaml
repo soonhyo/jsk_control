@@ -1,0 +1,108 @@
+# Robot Teleop Configuration Template
+# Copy this file and rename it to your robot name (e.g., myrobot.yaml)
+
+robot:
+  name: "template_robot"  # Robot name (lowercase)
+  package: "template_robot_description"  # Robot description package name
+  core_msgs_package: null  # Set to package name if robot has specific core msgs (e.g., "baxter_core_msgs")
+
+# ROS Topics Configuration
+topics:
+  # Gripper status topics (set to null if not available)
+  gripper_status:
+    larm: "/robot/end_effector/left_gripper/gripper_action/status"
+    rarm: "/robot/end_effector/right_gripper/gripper_action/status"
+  
+  # Collision detection topics (set to null if not available)
+  collision_status:
+    larm: "/robot/limb/left/collision_detection_state"
+    rarm: "/robot/limb/right/collision_detection_state"
+    # Message type will be auto-determined from core_msgs_package if available
+  
+  # Frame IDs
+  frames:
+    base: "base"
+    head: "head"
+
+# Features Configuration
+features:
+  collision_detection: true
+  gripper_control: true
+  head_control: true
+  arm_motion: true
+  torso_control: false
+  base_motion: false
+  visual_feedback: true
+
+# Hardware Parameters
+hardware:
+  arm_length: 1000  # mm
+  head_to_shoulder:
+    x_distance: 100  # mm
+    z_distance: 50   # mm
+
+# Control Parameters
+control:
+  # Inverse Kinematics
+  ik:
+    stop_step: 10
+    solve_ik: true
+  
+  # Motion timing
+  motion:
+    av_tm: 300  # ms - angle vector time
+    av_scale: 3.0  # angle vector scale
+    min_time: 0.3  # seconds - minimum motion time
+  
+  # Torso control (if enabled)
+  torso:
+    av_tm: 1000  # ms
+    av_scale: 2.0
+    min_time: 0.5  # seconds
+    z_thresh: 200  # mm - threshold for torso usage
+    ik_weight: 0.5
+  
+  # Safety parameters
+  safety:
+    end_coords_pos_diff_thresh: 400  # mm - maximum position difference
+    grasp_timeout_time: 1.5  # seconds
+  
+  # Update rate
+  rate: 10  # Hz
+
+# Workspace limits (optional - set to null to disable)
+workspace:
+  max_x: null
+  max_y: null
+  max_z: null
+  min_x: null
+  min_y: null
+  min_z: null
+
+# Gripper types (optional - set to null if not applicable)
+# Only used for robots with multiple gripper types
+gripper_types:
+  larm: null  # Options: "parallel", "softhand-v2", etc. Set to null for default
+  rarm: null
+
+# Robot-specific methods (optional)
+# Set to false if robot doesn't have these methods
+robot_methods:
+  nod: false  # Whether robot can nod
+  reset_teleop_pose: true  # Whether robot has :reset-teleop-pose method
+  thumb_control: false  # Whether robot has thumb control (like softhand)
+
+# Controller-specific settings
+controllers:
+  vive:
+    enable_button: "menu"
+    gripper_button: "trigger"
+  oculus:
+    enable_button: "menu"
+    gripper_button: "trigger"
+  spacenav:
+    enable_button: "right"
+    gripper_button: "left"
+  tablis:
+    enable_button: "menu"
+    gripper_button: "trigger"
