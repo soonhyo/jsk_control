@@ -35,7 +35,7 @@
       (send self :set-val 'head-frame-id "neck_yaw_link")
       
       ;; Sciurus17 inverse kinematics configuration
-      (send self :set-val 'arm-cb-solve-ik true)
+      (send self :set-val 'arm-cb-solve-ik t)
       (send self :set-val 'ik-stop-step 10)
       (send self :set-val 'av-tm 300)
       (send self :set-val 'av-scale 3.0)
@@ -62,11 +62,11 @@
       (send self :set-val 'torso-z-thresh 150)
       (send self :set-val 'torso-ik-weight 0.3)))
   (:reset (&key (loop-enable t))
-    (send self :reset-sciurus17-org :loop-enable loop-enable :torso true))
+    (send self :reset-sciurus17-org :loop-enable loop-enable :torso t))
   (:reset-arm (arm &key (wait t))
     (send self :reset-arm-sciurus17-org arm :wait wait :reset-pose :reset-teleop-pose))
-  (:enable () (send self :enable-sciurus17-org :torso true))
-  (:disable () (send self :disable-sciurus17-org :torso true))
+  (:enable () (send self :enable-sciurus17-org :torso t))
+  (:disable () (send self :disable-sciurus17-org :torso t))
   (:move-head (yaw pitch roll)
     (send robot :head-neck-p :joint-angle (rad2deg pitch))
     (send robot :head-neck-y :joint-angle (rad2deg yaw))

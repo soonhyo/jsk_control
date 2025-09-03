@@ -76,7 +76,7 @@ class RobotTeleopGenerator:
         template += f"""
       
       ;; {self.robot_name_title} inverse kinematics configuration
-      (send self :set-val 'arm-cb-solve-ik {str(control['ik']['solve_ik']).lower()})
+      (send self :set-val 'arm-cb-solve-ik {'t' if control['ik']['solve_ik'] else 'nil'})
       (send self :set-val 'ik-stop-step {control['ik']['stop_step']})
       (send self :set-val 'av-tm {control['motion']['av_tm']})
       (send self :set-val 'av-scale {control['motion']['av_scale']})
@@ -130,7 +130,7 @@ class RobotTeleopGenerator:
         template += "))"
 
         # Reset methods
-        torso_enable = str(features.get('torso_control', False)).lower()
+        torso_enable = 't' if features.get('torso_control', False) else 'nil'
         template += f"""
   (:reset (&key (loop-enable t))
     (send self :reset-{self.robot_name}-org :loop-enable loop-enable :torso {torso_enable}))
@@ -300,7 +300,7 @@ class RobotTeleopGenerator:
   (x::window-main-one))
 
 
-(defun main (&key (head {str(features.get('head_control', False)).lower()}) (safe-arm t) (mirror nil) (visualize t)
+(defun main (&key (head {'t' if features.get('head_control', False) else 'nil'}) (safe-arm t) (mirror nil) (visualize t)
                   (lgripper :parallel) (rgripper :parallel) (loop-enable t) (device-type :vive))
   (init :lgripper lgripper :rgripper rgripper :loop-enable t :device-type device-type)"""
 
@@ -308,7 +308,7 @@ class RobotTeleopGenerator:
             template += f"""
   (send *ri* :nod)"""
 
-        torso_control = str(features.get('torso_control', False)).lower()
+        torso_control = 't' if features.get('torso_control', False) else 'nil'
         
         template += f"""
   (if (not loop-enable) (send *ti* :disable))
@@ -331,22 +331,93 @@ class RobotTeleopGenerator:
     def generate_controller_interface(self, controller_name: str) -> str:
         """Generate controller-specific interface file content."""
         
-        template = f""";; -*- mode: lisp;-*-
-(require :robot-{controller_name}-interface "package://eus_teleop/euslisp/lib/robot-{controller_name}-interface.l")
+        robot_config = self.config['robot']
+        
+        template = f""";; -*- mode: lisp;-*-"""
+        
+        # Load ROS manifest if core_msgs_package exists
+        if robot_config.get('core_msgs_package'):
+            template += f"""
+(ros::load-ros-manifest "{robot_config['core_msgs_package']}")"""
+        
+        template += f"""
+
+(require :{self.robot_name}-interface "package://eus_teleop/euslisp/lib/{self.robot_name}-interface.l")
+(require :robot-teleop-interface "package://eus_teleop/euslisp/lib/robot-teleop-interface.l")
 (require :{self.robot_name}-teleop-interface "package://eus_teleop/euslisp/lib/{self.robot_name}-teleop-interface.l")
+(require :robot-{controller_name}-interface "package://eus_teleop/euslisp/lib/robot-{controller_name}-interface.l")
+
+
+(defclass {self.robot_name}-{controller_name}-interface
+  :super robot-{controller_name}-interface
+  :slots ())
+
+
+(defmethod {self.robot_name}-{controller_name}-interface
+  (:init (&rest args)
+    (prog1
+      (send-super* :init args)
+      ;; {self.robot_name_title}-specific {controller_name} configuration
+      (send self :set-val 'scale 3.0))))
+
 
 (defun {self.robot_name}-{controller_name}-init (&key (lgripper :parallel) (rgripper :parallel) (loop-enable t))
-  (robot-{controller_name}-init)
-  (send *ri* :spin-once)
-  (send *ri* :angle-vector (send *{self.robot_name}* :reset-pose) 2000)
-  (send *ri* :wait-interpolation)
+  ;; Initialize robot (ensure robot model and interface are loaded)
+  (init-{self.robot_name})
+  
+  ;; Robot-specific initialization
+  (when *ri*
+    (send *ri* :spin-once)
+    (when (find-method *{self.robot_name}* :reset-pose)
+      (send *ri* :angle-vector (send *{self.robot_name}* :reset-pose) 2000)
+      (send *ri* :wait-interpolation)))
+  
+  ;; Setup visualization
   (make-{self.robot_name}-irtviewer :no-window t)
   (make-{self.robot_name}-camera-model :no-window t)
-  (setq *ti* (instance robot-teleop-interface :init :loop-enable loop-enable :lgripper lgripper :rgripper rgripper))
-  (send *ti* :ros-init)
-  (send *ti* :reset :loop-enable loop-enable))
+  
+  ;; Create teleop interface instance
+  (setq *ti* (instance {self.robot_name}-{controller_name}-interface :init :loop-enable loop-enable
+                       :lgripper lgripper :rgripper rgripper))
+  (send *ti* :ros-init))
 
 (provide :{self.robot_name}-{controller_name}-interface)
+"""
+        return template
+
+    def generate_basic_robot_interface(self) -> str:
+        """Generate basic robot interface file if it doesn't exist."""
+        
+        eus_package = self.config['robot']['eus_package']
+        
+        template = f""";; -*- mode: lisp;-*-
+;; Robot interface file for {self.robot_name_title}
+
+;; Load robot description and interface from robot EusLisp package
+(require :{self.robot_name} "package://{eus_package}/{self.robot_name}.l")
+(require :{self.robot_name}-interface "package://{eus_package}/{self.robot_name}-interface.l")
+
+;; Robot model and interface instances
+(defvar *{self.robot_name}* nil "Robot model instance")
+(defvar *ri* nil "Robot interface instance")
+
+;; Initialize robot model and interface
+(defun init-{self.robot_name} ()
+  "Initialize {self.robot_name_title} robot model and interface"
+  (unless *{self.robot_name}*
+    (setq *{self.robot_name}* ({self.robot_name}))
+    (ros::ros-info "Loaded {self.robot_name_title} robot model"))
+  
+  (unless *ri*
+    (setq *ri* (instance {self.robot_name}-interface :init))
+    (ros::ros-info "Initialized {self.robot_name_title} robot interface"))
+  
+  (list *{self.robot_name}* *ri*))
+
+;; Auto-initialize when loading this file
+(init-{self.robot_name})
+
+(provide :{self.robot_name}-interface)
 """
         return template
 
@@ -359,6 +430,30 @@ class RobotTeleopGenerator:
         
         for directory in [lib_dir, euslisp_dir]:
             os.makedirs(directory, exist_ok=True)
+        
+        # Check if basic robot interface exists, create if requested in config
+        robot_interface_path = os.path.join(lib_dir, f'{self.robot_name}-interface.l')
+        created_robot_interface = False
+        generation_config = self.config.get('generation', {})
+        
+        if not os.path.exists(robot_interface_path):
+            if generation_config.get('create_robot_interface', True):
+                robot_interface_content = self.generate_basic_robot_interface()
+                with open(robot_interface_path, 'w') as f:
+                    f.write(robot_interface_content)
+                print(f"Generated: {robot_interface_path}")
+                created_robot_interface = True
+            else:
+                print(f"Skipping: {robot_interface_path} (create_robot_interface=false)")
+        else:
+            if generation_config.get('overwrite_existing', False):
+                robot_interface_content = self.generate_basic_robot_interface()
+                with open(robot_interface_path, 'w') as f:
+                    f.write(robot_interface_content)
+                print(f"Overwritten: {robot_interface_path}")
+                created_robot_interface = True
+            else:
+                print(f"Using existing: {robot_interface_path}")
         
         # Generate main teleop interface file
         teleop_interface_content = self.generate_teleop_interface()
@@ -382,6 +477,43 @@ class RobotTeleopGenerator:
             with open(controller_path, 'w') as f:
                 f.write(controller_content)
             print(f"Generated: {controller_path}")
+        
+        # Print required files info
+        self.print_requirements_info(created_robot_interface)
+
+    def print_requirements_info(self, created_robot_interface: bool = False):
+        """Print information about required files and setup steps."""
+        
+        eus_package = self.config['robot']['eus_package']
+        
+        print(f"\n{'='*60}")
+        print("IMPORTANT: Required Files and Setup")
+        print(f"{'='*60}")
+        
+        if not created_robot_interface:
+            print(f"\nUsing existing robot interface files.")
+        else:
+            print(f"\nRobot interface file created:")
+            print(f"   - {self.robot_name}-interface.l (PLACEHOLDER)")
+            print(f"   WARNING: You MUST replace the placeholder with your actual robot implementation")
+        
+        print(f"\nNEXT STEPS:")
+        print(f"   1. Ensure your robot EusLisp package ({eus_package}) is properly set up")
+        print(f"   2. Implement or link the robot interface files")
+        print(f"   3. Update topic names in the YAML config if needed:")
+        
+        topics = self.config['topics']
+        if topics['gripper_status']['larm']:
+            print(f"      - Gripper topics: {topics['gripper_status']['larm']}")
+        if topics['collision_status']['larm']:
+            print(f"      - Collision topics: {topics['collision_status']['larm']}")
+        
+        print(f"   4. Test the generated files:")
+        print(f"      roseus euslisp/{self.robot_name}-teleop-main.l")
+        print(f"      (main :device-type :vive)")
+        
+        print(f"\nTIP: Copy and modify an existing robot's interface files as a starting point")
+        print(f"{'='*60}\n")
 
 
 def main():
@@ -399,7 +531,7 @@ Examples:
     )
     
     parser.add_argument('config_file', help='YAML configuration file path')
-    parser.add_argument('-o', '--output-dir', default='.', 
+    parser.add_argument('-o', '--output-dir', default='.',
                        help='Output directory for generated files (default: current directory)')
     
     args = parser.parse_args()

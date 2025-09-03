@@ -2,8 +2,13 @@
 
 robot:
   name: "sciurus17"
-  package: "sciurus17_description"
-  core_msgs_package: null  # Sciurus17 doesn't have specific core msgs package
+  eus_package: "sciurus17eus"  # Package containing EusLisp robot files
+  core_msgs_package: null     # Sciurus17 doesn't have specific core msgs package
+  
+# File Generation Options  
+generation:
+  create_robot_interface: true  # Create sciurus17-interface.l file if it doesn't exist
+  overwrite_existing: false    # Whether to overwrite existing files
 
 topics:
   # Sciurus17 gripper topics (adjust according to actual topics)

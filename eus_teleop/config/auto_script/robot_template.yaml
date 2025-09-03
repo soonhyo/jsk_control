@@ -3,8 +3,13 @@
 
 robot:
   name: "template_robot"  # Robot name (lowercase)
-  package: "template_robot_description"  # Robot description package name
+  eus_package: "template_roboteus"  # Package containing EusLisp robot files (e.g., "sciurus17eus", "pr2eus")
   core_msgs_package: null  # Set to package name if robot has specific core msgs (e.g., "baxter_core_msgs")
+  
+# File Generation Options
+generation:
+  create_robot_interface: true  # Create {robot_name}-interface.l file if it doesn't exist
+  overwrite_existing: false    # Whether to overwrite existing files (default: false)
 
 # ROS Topics Configuration
 topics:
